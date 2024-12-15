@@ -1,0 +1,42 @@
+pool:
+  name: Azure Pipelines
+  demands: npm
+
+steps:
+# Install npm dependencies
+- task: Npm@1
+  displayName: 'Install npm dependencies'
+  inputs:
+    command: 'install'
+    verbose: false
+
+# Build the Angular project in production mode
+- script: |
+    npx ng build --configuration production
+  displayName: 'Build Angular project'
+
+# Archive the build output
+- task: ArchiveFiles@2
+  displayName: 'Archive dist/'
+  inputs:
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)/dist'
+    includeRootFolder: false
+    archiveFile: '$(Build.ArtifactStagingDirectory)/dist.zip'
+    replaceExistingArchive: true
+
+# Publish the archived build output as an artifact
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: drop'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/dist.zip'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+
+# Deploy to Azure App Service
+- task: AzureRmWebAppDeployment@4
+  displayName: 'Azure App Service Deploy: frontVentasPruebas'
+  inputs:
+    azureSubscription: 'Azure subscription 1(1)(d4521b3b-5526-4108-a9b6-4090cb1d2c55)'
+    appType: 'webApp'
+    WebAppName: 'frontVentasPruebas'
+    packageForLinux: '$(Build.ArtifactStagingDirectory)/dist.zip'
